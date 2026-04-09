@@ -1,0 +1,25 @@
+[2026-03-16 15:22:25][notice]Start restoring themes.
+[2026-03-16 15:22:25][notice]Extracting file:localhost_onomachi-it-media_wpvivid-4772182a3d6bb_2026-03-16-15-18_backup_all.zip
+[2026-03-16 15:22:25][notice]Extracting file:localhost_onomachi-it-media_wpvivid-4772182a3d6bb_2026-03-16-15-18_backup_all.zip succeeded.
+[2026-03-16 15:22:25][notice]Extracting file:localhost_onomachi-it-media_wpvivid-4772182a3d6bb_2026-03-16-15-18_backup_themes.zip index:0
+[2026-03-16 15:22:25][notice]Extracting file:localhost_onomachi-it-media_wpvivid-4772182a3d6bb_2026-03-16-15-18_backup_themes.zip index:0 finished.
+[2026-03-16 15:22:25][notice]End restore themes.
+[2026-03-16 15:22:26][notice]Start restoring plugin.
+[2026-03-16 15:22:26][notice]Extracting file:localhost_onomachi-it-media_wpvivid-4772182a3d6bb_2026-03-16-15-18_backup_all.zip
+[2026-03-16 15:22:26][notice]Extracting file:localhost_onomachi-it-media_wpvivid-4772182a3d6bb_2026-03-16-15-18_backup_all.zip succeeded.
+[2026-03-16 15:22:26][notice]Extracting file:localhost_onomachi-it-media_wpvivid-4772182a3d6bb_2026-03-16-15-18_backup_plugin.zip index:0
+[2026-03-16 15:22:26][notice]Extracting file:localhost_onomachi-it-media_wpvivid-4772182a3d6bb_2026-03-16-15-18_backup_plugin.zip index:0 finished.
+[2026-03-16 15:22:26][notice]End restore plugin.
+[2026-03-16 15:22:27][notice]Start restoring wp-content.
+[2026-03-16 15:22:27][notice]Extracting file:localhost_onomachi-it-media_wpvivid-4772182a3d6bb_2026-03-16-15-18_backup_all.zip
+[2026-03-16 15:22:27][notice]Extracting file:localhost_onomachi-it-media_wpvivid-4772182a3d6bb_2026-03-16-15-18_backup_all.zip succeeded.
+[2026-03-16 15:22:27][notice]Extracting file:localhost_onomachi-it-media_wpvivid-4772182a3d6bb_2026-03-16-15-18_backup_content.zip index:0
+[2026-03-16 15:22:27][notice]Extracting file:localhost_onomachi-it-media_wpvivid-4772182a3d6bb_2026-03-16-15-18_backup_content.zip index:0 finished.
+[2026-03-16 15:22:27][notice]End restore wp-content.
+[2026-03-16 15:22:28][notice]Start restoring wp-core.
+[2026-03-16 15:22:28][notice]Extracting file:localhost_onomachi-it-media_wpvivid-4772182a3d6bb_2026-03-16-15-18_backup_all.zip
+[2026-03-16 15:22:29][notice]Extracting file:localhost_onomachi-it-media_wpvivid-4772182a3d6bb_2026-03-16-15-18_backup_all.zip succeeded.
+[2026-03-16 15:22:29][notice]Extracting file:localhost_onomachi-it-media_wpvivid-4772182a3d6bb_2026-03-16-15-18_backup_core.zip
+[2026-03-16 15:22:29][notice]Extracting file:localhost_onomachi-it-media_wpvivid-4772182a3d6bb_2026-03-16-15-18_backup_core.zip succeeded.
+[2026-03-16 15:22:29][notice]End restore wp-core.
+[2026-03-16 15:22:30][notice]Deleting temp files.

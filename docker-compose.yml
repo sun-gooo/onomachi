@@ -1,0 +1,115 @@
+services:
+  # 共通データベース
+  db:
+    image: mysql:8.0
+    container_name: onomachi-it-media-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME_WP}
+      MYSQL_USER: ${DB_USER_WP}
+      MYSQL_PASSWORD: ${DB_PASSWORD_WP}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # メイン窓口 (Gateway)
+  gateway:
+    image: nginx:latest
+    container_name: gateway-nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./gateway/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      redmine:
+        condition: service_healthy
+      wp-nginx:
+        condition: service_started
+      phpmyadmin:
+        condition: service_started
+
+  # Redmine
+  redmine:
+    image: redmine:latest
+    container_name: redmine-app
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      REDMINE_DB_MYSQL: db
+      REDMINE_DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      RAILS_RELATIVE_URL_ROOT: /redmine
+      # === TODO: 庁内LAN SMTPサーバの情報に書き換えること ===
+      REDMINE_EMAIL_DELIVERY_METHOD: smtp
+      REDMINE_SMTP_ADDRESS: ${SMTP_ADDRESS}          # TODO: 庁内SMTPサーバのホスト名 (例: mail.city.example.lg.jp)
+      REDMINE_SMTP_PORT: ${SMTP_PORT}                # TODO: ポート番号 (25 or 587)
+      REDMINE_SMTP_DOMAIN: ${SMTP_DOMAIN}            # TODO: 庁内ドメイン名 (例: city.example.lg.jp)
+      REDMINE_SMTP_AUTHENTICATION: ${SMTP_AUTH}      # TODO: 認証方式 (login / plain / none)
+      REDMINE_SMTP_USER_NAME: ${SMTP_USER}           # TODO: 認証不要なら空でよい
+      REDMINE_SMTP_PASSWORD: ${SMTP_PASSWORD}        # TODO: 認証不要なら空でよい
+      REDMINE_SMTP_ENABLE_STARTTLS_AUTO: ${SMTP_TLS} # TODO: TLS不要なら "false"
+      # =========================================================
+    volumes:
+      - ./redmine/data:/usr/src/redmine/files
+      - ./redmine/config.ru:/usr/src/redmine/config.ru
+      - ./redmine/plugins:/usr/src/redmine/plugins
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/redmine"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  # WordPress (PHP)
+  wp-php:
+    build: ./wordpress/onomachi-it-media/php
+    container_name: wp-php-app
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_NAME: ${DB_NAME_WP}
+      WORDPRESS_DB_USER: ${DB_USER_WP}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD_WP}
+    volumes:
+      - ./wordpress/onomachi-it-media/html:/var/www/html
+      - ./wordpress/onomachi-it-media/php/php.ini:/usr/local/etc/php/conf.d/php.ini
+
+  # WordPress (Nginx)
+  wp-nginx:
+    image: nginx:latest
+    container_name: wp-nginx-server
+    restart: always
+    volumes:
+      - ./wordpress/onomachi-it-media/html:/var/www/html
+      - ./wordpress/onomachi-it-media/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - wp-php
+
+  # phpMyAdmin
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: it-media-pma
+    restart: always
+    environment:
+      PMA_HOST: db
+      PMA_USER: root
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      PMA_ABSOLUTE_URI: http://localhost/phpmyadmin/
+      UPLOAD_LIMIT: 512M
+      MAX_EXECUTION_TIME: 600
+    depends_on:
+      - db
+
+volumes:
+  db_data:

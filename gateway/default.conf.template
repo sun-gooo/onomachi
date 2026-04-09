@@ -1,11 +1,11 @@
 server {
     listen 80;
-    server_name localhost;
+    server_name localhost ${PC_NAME};
 
     # Docker 内部 DNS でホスト名を動的解決する
     resolver 127.0.0.11 valid=30s ipv6=off;
 
-    # http://PC名/redmine
+    # http://${PC_NAME}/redmine
     location /redmine {
         set $redmine_upstream http://redmine-app:3000;
         proxy_pass $redmine_upstream;
@@ -15,7 +15,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # http://PC名/onomachi-it-media
+    # http://${PC_NAME}/onomachi-it-media
     location /onomachi-it-media {
         set $wp_upstream http://wp-nginx-server:80;
         proxy_pass $wp_upstream;
@@ -30,14 +30,16 @@ server {
         proxy_send_timeout 600;
     }
 
-    # http://PC名/phpmyadmin
+    # http://${PC_NAME}/phpmyadmin
     location /phpmyadmin/ {
         set $pma_upstream http://it-media-pma:80;
-        proxy_pass $pma_upstream/;
+        rewrite ^/phpmyadmin/(.*) /$1 break;
+        proxy_pass $pma_upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cookie_path / /phpmyadmin/;
 
         client_max_body_size 512M;
         proxy_read_timeout 600;

@@ -25,8 +25,10 @@ services:
     restart: always
     ports:
       - "80:80"
+    environment:
+      - PC_NAME=${PC_NAME}
     volumes:
-      - ./gateway/default.conf:/etc/nginx/conf.d/default.conf
+      - ./gateway/default.conf.template:/etc/nginx/templates/default.conf.template
     depends_on:
       redmine:
         condition: service_healthy
@@ -105,7 +107,7 @@ services:
       PMA_HOST: db
       PMA_USER: root
       PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      PMA_ABSOLUTE_URI: http://localhost/phpmyadmin/
+      PMA_ABSOLUTE_URI: http://${PC_NAME}/phpmyadmin/
       UPLOAD_LIMIT: 512M
       MAX_EXECUTION_TIME: 600
     depends_on:

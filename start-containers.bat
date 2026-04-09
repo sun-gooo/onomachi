@@ -54,7 +54,7 @@ echo.
 
 REM --- コンテナ起動 ---
 echo コンテナを起動しています...
-wsl -d Ubuntu -- bash -c "cd ~/docker-dev/onomachi && docker compose up -d"
+wsl -d Ubuntu -- bash -c "cd ~/docker-dev/onomachi && docker compose down && docker compose up -d --build"
 if %ERRORLEVEL% neq 0 (
     echo.
     echo [エラー] docker compose up に失敗しました。
@@ -73,6 +73,20 @@ if "%WSL_IP%"=="" (
 echo WSL IP: %WSL_IP%
 netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=80 connectaddress=%WSL_IP% connectport=80 >nul 2>&1
 echo portproxy: 設定完了 ^(Windows:80 ^-^> %WSL_IP%:80^)
+echo.
+
+REM --- Windows hosts ファイルに PC_NAME のエントリを追加 ---
+for /f "usebackq tokens=1* delims==" %%a in (`findstr /B "PC_NAME=" "%~dp0.env"`) do set _PC_VAL=%%b
+for /f "tokens=1" %%a in ("%_PC_VAL%") do set PC_NAME_HOSTS=%%a
+if not "%PC_NAME_HOSTS%"=="" (
+    findstr /C:"127.0.0.1 %PC_NAME_HOSTS%" "C:\Windows\System32\drivers\etc\hosts" >nul 2>&1
+    if %ERRORLEVEL% neq 0 (
+        echo 127.0.0.1 %PC_NAME_HOSTS% >> "C:\Windows\System32\drivers\etc\hosts"
+        echo hosts: 127.0.0.1 %PC_NAME_HOSTS% を追加しました
+    ) else (
+        echo hosts: %PC_NAME_HOSTS% は既に登録済みです
+    )
+)
 echo.
 
 REM --- 各サービスが実際に応答するまで待機 ---
@@ -163,9 +177,15 @@ echo.
 echo ============================================
 echo   起動完了！
 echo --------------------------------------------
-echo   WordPress : http://localhost/onomachi-it-media/
-echo   Redmine   : http://localhost/redmine
-echo   phpMyAdmin: http://localhost/phpmyadmin/
+if not "%PC_NAME_HOSTS%"=="" (
+    echo   WordPress : http://%PC_NAME_HOSTS%/onomachi-it-media/
+    echo   Redmine   : http://%PC_NAME_HOSTS%/redmine
+    echo   phpMyAdmin: http://%PC_NAME_HOSTS%/phpmyadmin/
+) else (
+    echo   WordPress : http://localhost/onomachi-it-media/
+    echo   Redmine   : http://localhost/redmine
+    echo   phpMyAdmin: http://localhost/phpmyadmin/
+)
 echo ============================================
 
 :: --- 追加: WSLのセッションを維持するための処理 ---

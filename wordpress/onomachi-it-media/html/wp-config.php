@@ -91,6 +91,17 @@ define( 'WP_DEBUG', false );
 
 define( 'FS_METHOD', 'direct' );
 
+/* localhost / redmine-sv どちらからでもアクセスできるよう、
+   リクエストの Host ヘッダーに基づいて WP_SITEURL / WP_HOME を動的に設定する。 */
+$_wp_allowed = [ 'localhost', 'redmine-sv' ];
+$_wp_host    = isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : 'localhost';
+if ( ! in_array( strtolower( explode( ':', $_wp_host )[0] ), $_wp_allowed, true ) ) {
+	$_wp_host = 'localhost';
+}
+define( 'WP_SITEURL', 'http://' . $_wp_host . '/onomachi-it-media' );
+define( 'WP_HOME',    'http://' . $_wp_host . '/onomachi-it-media' );
+unset( $_wp_allowed, $_wp_host );
+
 /* That's all, stop editing! Happy publishing. */
 
 /** Absolute path to the WordPress directory. */

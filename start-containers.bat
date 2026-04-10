@@ -44,8 +44,7 @@ if %ERRORLEVEL% neq 0 (
 echo Docker Engine: 準備完了
 echo.
 
-REM --- Windows ファイアウォール: ポート 80 を許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
-可 ---
+REM --- Windows ファイアウォール: ポート 80 を許可 ---
 REM --- (nat モード: portproxy 経由でポート 80 をフォワード) ---
 netsh advfirewall firewall delete rule name="WSL2 Gateway Port 80" >nul 2>&1
 netsh advfirewall firewall add rule name="WSL2 Gateway Port 80" dir=in action=allow protocol=TCP localport=80 >nul 2>&1

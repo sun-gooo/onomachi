@@ -9,7 +9,26 @@ if %ERRORLEVEL% neq 0 (
     exit /b
 )
 
+REM --- ログ設定 ---
+for /f "usebackq" %%I in (`powershell -NoProfile -Command "Get-Date -Format 'yyyyMMdd_HHmm'"`) do set TIMESTAMP=%%I
+set LOG_DIR=\\wsl.localhost\Ubuntu\home\sango\docker-dev\onomachi\log
+set LOG_FILE=%LOG_DIR%\start_%TIMESTAMP%.log
+
+if "%~1"=="--log" goto :do_main
+mkdir "%LOG_DIR%" 2>nul
+call "%~f0" --log 2>&1 | powershell -NoProfile -Command "$input | ForEach-Object { $_; $_ | Out-File -Append -Encoding UTF8 -FilePath '%LOG_FILE%' }"
+exit /b
+
+:do_main
+powershell -NoProfile -Command "'=== 実行開始: ' + (Get-Date -Format 'yyyy/MM/dd HH:mm:ss') + ' ===' | Add-Content -Path '%LOG_FILE%' -Encoding UTF8"
+for /f "usebackq delims=" %%S in (`powershell -NoProfile -Command "(Get-Date).Ticks"`) do set START_TICKS=%%S
 call :main
+set MAIN_RESULT=%ERRORLEVEL%
+if %MAIN_RESULT% equ 0 (
+    powershell -NoProfile -Command "'=== 実行終了: ' + (Get-Date -Format 'yyyy/MM/dd HH:mm:ss') + ' [正常終了] ===' | Add-Content -Path '%LOG_FILE%' -Encoding UTF8"
+) else (
+    powershell -NoProfile -Command "'=== 実行終了: ' + (Get-Date -Format 'yyyy/MM/dd HH:mm:ss') + ' [異常終了: code %MAIN_RESULT%] ===' | Add-Content -Path '%LOG_FILE%' -Encoding UTF8"
+)
 echo.
 pause
 exit /b
@@ -76,7 +95,7 @@ echo portproxy: 設定完了 ^(Windows:80 ^-^> %WSL_IP%:80^)
 echo.
 
 REM --- Windows hosts ファイルに PC_NAME のエントリを追加 ---
-for /f "usebackq tokens=1* delims==" %%a in (`findstr /B "PC_NAME=" "%~dp0.env"`) do set _PC_VAL=%%b
+for /f "usebackq tokens=1* delims==" %%a in (`findstr /B "PC_NAME=" "\\wsl.localhost\Ubuntu\home\sango\docker-dev\onomachi\.env"`) do set _PC_VAL=%%b
 for /f "tokens=1" %%a in ("%_PC_VAL%") do set PC_NAME_HOSTS=%%a
 if not "%PC_NAME_HOSTS%"=="" (
     findstr /C:"127.0.0.1 %PC_NAME_HOSTS%" "C:\Windows\System32\drivers\etc\hosts" >nul 2>&1
@@ -96,13 +115,13 @@ echo   (Redmine は初回起動に 1〜2 分かかる場合があります)
 echo.
 
 REM --- Redmine ---
-echo [1/3] Redmine の起動を待機中...
+echo [1/4] Redmine の起動を待機中...
 set RETRY=0
 :wait_redmine
 set /a RETRY+=1
 if %RETRY% gtr 40 (
     echo   [警告] Redmine の起動がタイムアウトしました。手動で確認してください。
-    goto check_wp
+    goto check_redmine_test
 )
 wsl -d Ubuntu -- bash -c "curl -s --connect-timeout 5 --max-time 10 -o /dev/null -w '%%{http_code}' http://localhost/redmine 2>/dev/null | grep -q '200\|301\|302'"
 if %ERRORLEVEL% neq 0 (
@@ -113,9 +132,28 @@ if %ERRORLEVEL% neq 0 (
 echo   Redmine: 準備完了
 echo.
 
+REM --- Redmine 検証環境 ---
+:check_redmine_test
+echo [2/4] Redmine 検証環境 の起動を待機中...
+set RETRY=0
+:wait_redmine_test
+set /a RETRY+=1
+if %RETRY% gtr 40 (
+    echo   [警告] Redmine 検証環境 の起動がタイムアウトしました。手動で確認してください。
+    goto check_wp
+)
+wsl -d Ubuntu -- bash -c "curl -s --connect-timeout 5 --max-time 10 -o /dev/null -w '%%{http_code}' http://localhost/redmine-test 2>/dev/null | grep -q '200\|301\|302'"
+if %ERRORLEVEL% neq 0 (
+    echo   待機中... [%RETRY%/40] 5秒後にリトライ
+    timeout /t 5 /nobreak >nul
+    goto wait_redmine_test
+)
+echo   Redmine 検証環境: 準備完了
+echo.
+
 REM --- WordPress ---
 :check_wp
-echo [2/3] WordPress の起動を待機中...
+echo [3/4] WordPress の起動を待機中...
 set RETRY=0
 :wait_wp
 set /a RETRY+=1
@@ -134,7 +172,7 @@ echo.
 
 REM --- phpMyAdmin ---
 :check_pma
-echo [3/3] phpMyAdmin の起動を待機中...
+echo [4/4] phpMyAdmin の起動を待機中...
 set RETRY=0
 :wait_pma
 set /a RETRY+=1
@@ -178,15 +216,28 @@ echo ============================================
 echo   起動完了！
 echo --------------------------------------------
 if not "%PC_NAME_HOSTS%"=="" (
-    echo   WordPress : http://%PC_NAME_HOSTS%/onomachi-it-media/
-    echo   Redmine   : http://%PC_NAME_HOSTS%/redmine
-    echo   phpMyAdmin: http://%PC_NAME_HOSTS%/phpmyadmin/
+    echo   WordPress      : http://%PC_NAME_HOSTS%/onomachi-it-media/
+    echo   Redmine        : http://%PC_NAME_HOSTS%/redmine
+    echo   Redmine ^(検証^) : http://%PC_NAME_HOSTS%/redmine-test
+    echo   phpMyAdmin     : http://%PC_NAME_HOSTS%/phpmyadmin/
 ) else (
-    echo   WordPress : http://localhost/onomachi-it-media/
-    echo   Redmine   : http://localhost/redmine
-    echo   phpMyAdmin: http://localhost/phpmyadmin/
+    echo   WordPress      : http://localhost/onomachi-it-media/
+    echo   Redmine        : http://localhost/redmine
+    echo   Redmine ^(検証^) : http://localhost/redmine-test
+    echo   phpMyAdmin     : http://localhost/phpmyadmin/
 )
 echo ============================================
+echo.
+
+REM --- コンテナ最終状態をログに記録 ---
+echo --- コンテナ最終状態 ---
+wsl -d Ubuntu -- docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+echo.
+
+REM --- 実行終了をログに記録 ---
+for /f "usebackq delims=" %%T in (`powershell -NoProfile -Command "Get-Date -Format 'yyyy/MM/dd HH:mm:ss'"`) do echo === 実行終了: %%T [正常終了] ===
+for /f "usebackq delims=" %%E in (`powershell -NoProfile -Command "[math]::Round(((Get-Date).Ticks - %START_TICKS%) / 10000000)"`) do echo     所要時間: %%E 秒
+echo.
 
 :: --- 追加: WSLのセッションを維持するための処理 ---
 echo WSLの常駐を維持しています...

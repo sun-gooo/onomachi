@@ -48,30 +48,23 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      postfix:
+        condition: service_started
     environment:
       REDMINE_DB_MYSQL: db
       REDMINE_DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       RAILS_RELATIVE_URL_ROOT: /redmine
-      # === TODO: 庁内LAN SMTPサーバの情報に書き換えること ===
-      REDMINE_EMAIL_DELIVERY_METHOD: smtp
-      REDMINE_SMTP_ADDRESS: ${SMTP_ADDRESS}          # TODO: 庁内SMTPサーバのホスト名 (例: mail.city.example.lg.jp)
-      REDMINE_SMTP_PORT: ${SMTP_PORT}                # TODO: ポート番号 (25 or 587)
-      REDMINE_SMTP_DOMAIN: ${SMTP_DOMAIN}            # TODO: 庁内ドメイン名 (例: city.example.lg.jp)
-      REDMINE_SMTP_AUTHENTICATION: ${SMTP_AUTH}      # TODO: 認証方式 (login / plain / none)
-      REDMINE_SMTP_USER_NAME: ${SMTP_USER}           # TODO: 認証不要なら空でよい
-      REDMINE_SMTP_PASSWORD: ${SMTP_PASSWORD}        # TODO: 認証不要なら空でよい
-      REDMINE_SMTP_ENABLE_STARTTLS_AUTO: ${SMTP_TLS} # TODO: TLS不要なら "false"
-      # =========================================================
     volumes:
       - ./redmine/data:/usr/src/redmine/files
       - ./redmine/config.ru:/usr/src/redmine/config.ru
       - ./redmine/plugins:/usr/src/redmine/plugins
+      - ./redmine/configuration.yml:/usr/src/redmine/config/configuration.yml
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/redmine"]
       interval: 15s
       timeout: 5s
       retries: 20
-      start_period: 60s
+      start_period: 180s
 
   # WordPress (PHP)
   wp-php:
@@ -109,29 +102,49 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      postfix:
+        condition: service_started
     environment:
       REDMINE_DB_MYSQL: db
       REDMINE_DB_DATABASE: redmine_test
       REDMINE_DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       RAILS_RELATIVE_URL_ROOT: /redmine-test
-      REDMINE_EMAIL_DELIVERY_METHOD: smtp
-      REDMINE_SMTP_ADDRESS: ${SMTP_ADDRESS}
-      REDMINE_SMTP_PORT: ${SMTP_PORT}
-      REDMINE_SMTP_DOMAIN: ${SMTP_DOMAIN}
-      REDMINE_SMTP_AUTHENTICATION: ${SMTP_AUTH}
-      REDMINE_SMTP_USER_NAME: ${SMTP_USER}
-      REDMINE_SMTP_PASSWORD: ${SMTP_PASSWORD}
-      REDMINE_SMTP_ENABLE_STARTTLS_AUTO: ${SMTP_TLS}
     volumes:
       - ./redmine-test/data:/usr/src/redmine/files
       - ./redmine-test/config.ru:/usr/src/redmine/config.ru
       - ./redmine-test/plugins:/usr/src/redmine/plugins
+      - ./redmine/configuration.yml:/usr/src/redmine/config/configuration.yml
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/redmine-test"]
       interval: 15s
       timeout: 5s
       retries: 20
-      start_period: 60s
+      start_period: 180s
+
+  # 定期メール送信スケジューラ (Ofelia)
+  cron:
+    image: mcuadros/ofelia:latest
+    container_name: redmine-cron
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./cron/config.ini:/etc/ofelia/config.ini
+    depends_on:
+      redmine:
+        condition: service_healthy
+
+  # Postfix メールリレー
+  postfix:
+    image: boky/postfix
+    container_name: postfix-relay
+    restart: always
+    environment:
+      ALLOWED_SENDER_DOMAINS: ${SMTP_DOMAIN}
+      HOSTNAME: mail.${SMTP_DOMAIN}
+      # 外部SMTPサーバへリレーする場合は以下を設定
+      # RELAYHOST: relay.example.lg.jp:25
+      # RELAYHOST_USERNAME: user
+      # RELAYHOST_PASSWORD: password
 
   # phpMyAdmin
   phpmyadmin:

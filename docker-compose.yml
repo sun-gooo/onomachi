@@ -48,8 +48,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      postfix:
-        condition: service_started
     environment:
       REDMINE_DB_MYSQL: db
       REDMINE_DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
@@ -102,8 +100,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      postfix:
-        condition: service_started
     environment:
       REDMINE_DB_MYSQL: db
       REDMINE_DB_DATABASE: redmine_test
@@ -132,19 +128,6 @@ services:
     depends_on:
       redmine:
         condition: service_healthy
-
-  # Postfix メールリレー
-  postfix:
-    image: boky/postfix
-    container_name: postfix-relay
-    restart: always
-    environment:
-      ALLOWED_SENDER_DOMAINS: ${SMTP_DOMAIN}
-      HOSTNAME: mail.${SMTP_DOMAIN}
-      # 外部SMTPサーバへリレーする場合は以下を設定
-      # RELAYHOST: relay.example.lg.jp:25
-      # RELAYHOST_USERNAME: user
-      # RELAYHOST_PASSWORD: password
 
   # phpMyAdmin
   phpmyadmin:
